@@ -1,0 +1,10 @@
+{
+  "name": "hara-selfish-email-finder",
+  "version": "1.0.0",
+  "description": "Scrapes facility websites (from listings.json) for a contact email, since Google Places doesn't provide one.",
+  "private": true,
+  "main": "find-emails.js",
+  "scripts": {
+    "start": "node find-emails.js"
+  }
+}
