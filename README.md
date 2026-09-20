@@ -30,12 +30,19 @@ node find-emails.js
 4. For the rest, checks the homepage and a few common contact-page paths,
    pulls out any email addresses, and filters out junk (`noreply@`,
    `webmaster@`, image files that look like emails, placeholder domains).
-5. **Backs up your current `listings.json`** (timestamped `.backup-*.json`
-   next to it) before writing anything.
+5. **Backs up your current `listings.json`** before writing anything, to
+   `hara-tools-output/email-finder/backups/listings.backup-<timestamp>.json`
+   (a new folder created next to `listings.json`).
 6. Writes the found emails directly into `listings.json`.
-7. Writes a timestamped CSV log (`email-scrape-log-*.csv`) next to your
-   listings file, showing exactly what it found and where, so you can
-   spot-check before trusting the results.
+7. Writes a timestamped CSV log to
+   `hara-tools-output/email-finder/logs/email-scrape-log-<timestamp>.csv`,
+   showing exactly what it found and where, so you can spot-check before
+   trusting the results.
+8. The first time it runs, it also adds a `hara-tools-output/` line to a
+   `.gitignore` in the same folder as `listings.json` (creating the file
+   if you don't already have one) — so none of this generated output ever
+   ends up committed. If you already keep a `.gitignore` there, it just
+   appends the one line if it's missing.
 
 ## Options (environment variables, all optional)
 
@@ -67,4 +74,6 @@ websites by hand. Check the CSV log afterward; anything marked
 ## After running this
 
 Feed the updated `listings.json` straight into the bulk mailer tool —
-it'll pick up the new `email` field automatically.
+it'll pick up the new `email` field automatically. The mailer's own
+generated file (`sent-log.json`) lands in the same `hara-tools-output/`
+folder, so one `.gitignore` line covers both tools.

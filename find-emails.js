@@ -7,6 +7,11 @@
 //
 // Uses only Node's built-in fetch — no npm install needed (Node 18+).
 //
+// Every file this script generates (backups + CSV logs) goes into a single
+// "hara-tools-output" folder next to listings.json — never loose in your
+// project root — and a .gitignore entry for that folder is created/kept
+// up to date automatically, so nothing generated ever gets committed.
+//
 // Run:   node find-emails.js
 // Options via environment variables (all optional):
 //   LISTINGS_PATH   path to listings.json (default: ./listings.json)
@@ -23,6 +28,25 @@ const DRY_RUN = process.env.DRY_RUN === '1';
 const CONCURRENCY = Number(process.env.CONCURRENCY || 5);
 const DELAY_MS = Number(process.env.DELAY_MS || 400);
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 8000);
+
+const PROJECT_DIR = path.dirname(LISTINGS_PATH);
+const OUTPUT_ROOT = path.join(PROJECT_DIR, 'hara-tools-output');
+const BACKUPS_DIR = path.join(OUTPUT_ROOT, 'email-finder', 'backups');
+const LOGS_DIR = path.join(OUTPUT_ROOT, 'email-finder', 'logs');
+
+function ensureGitignore(dir, entry) {
+  const gitignorePath = path.join(dir, '.gitignore');
+  let contents = '';
+  try {
+    contents = fs.readFileSync(gitignorePath, 'utf8');
+  } catch {
+    // no .gitignore yet — will be created
+  }
+  if (contents.split('\n').some((line) => line.trim() === entry)) return;
+  const sep = contents && !contents.endsWith('\n') ? '\n' : '';
+  fs.writeFileSync(gitignorePath, `${contents}${sep}${entry}\n`);
+  console.log(`Added "${entry}" to ${gitignorePath}`);
+}
 
 const CONTACT_PATHS = ['', '/contact', '/contact-us', '/contact-us/', '/about', '/about-us', '/reach-us'];
 
@@ -187,9 +211,11 @@ async function main() {
   const workers = Array.from({ length: CONCURRENCY }, () => worker());
   await Promise.all(workers);
 
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
   const csv = logRows.map((row) => row.map(csvEscape).join(',')).join('\n');
-  const logPath = path.join(path.dirname(LISTINGS_PATH), `email-scrape-log-${Date.now()}.csv`);
+  const logPath = path.join(LOGS_DIR, `email-scrape-log-${Date.now()}.csv`);
   fs.writeFileSync(logPath, csv);
+  ensureGitignore(PROJECT_DIR, 'hara-tools-output/');
 
   console.log(`\nDone. Checked ${checked} sites, found ${found} emails.`);
   console.log(`Skipped: ${skippedHasEmail} already had an email, ${skippedNoWebsite} had no usable website.`);
@@ -200,7 +226,8 @@ async function main() {
     return;
   }
 
-  const backupPath = LISTINGS_PATH.replace(/\.json$/, `.backup-${Date.now()}.json`);
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+  const backupPath = path.join(BACKUPS_DIR, `listings.backup-${Date.now()}.json`);
   fs.copyFileSync(LISTINGS_PATH, backupPath);
   console.log(`Backed up original to: ${backupPath}`);
 
